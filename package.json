@@ -1,0 +1,15 @@
+{
+  "name": "momentum-scanner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal premarket momentum scanner with an entry gate and broker order ticket",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "DATA_PROVIDER=demo BROKER=demo node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Momentum Scanner</title>
+  <link rel="stylesheet" href="app.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230b1220'/><path d='M18 3 7 18h7l-2 11 11-15h-7z' fill='%233b82f6'/></svg>" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" class="logo" aria-hidden="true"><path d="M18 3 7 18h7l-2 11 11-15h-7z" /></svg>
+      <h1>PREMARKET MOMENTUM SCANNER</h1>
+    </div>
+    <div id="modeBadge" class="mode-badge">…</div>
+  </header>
+
+  <section class="controls">
+    <label class="ctl"><span>SCAN</span>
+      <select id="scanSel"><option>Premarket Momentum</option></select>
+    </label>
+    <label class="ctl"><span>MARKET</span>
+      <select id="marketSel">
+        <option value="all">All</option><option value="nasdaq">NASDAQ</option>
+        <option value="nyse">NYSE</option><option value="amex">AMEX</option>
+      </select>
+    </label>
+    <label class="ctl"><span>MIN PM VOL</span>
+      <select id="pmVolSel">
+        <option value="100000">100K</option><option value="250000">250K</option>
+        <option value="500000">500K</option><option value="1000000">1.00M</option>
+        <option value="2000000">2.00M</option><option value="5000000">5.00M</option>
+      </select>
+    </label>
+    <label class="ctl"><span>MIN RVOL</span>
+      <select id="rvolSel">
+        <option value="0">0.00</option><option value="0.5">0.50</option><option value="1">1.00</option>
+        <option value="1.5">1.50</option><option value="2">2.00</option><option value="3">3.00</option><option value="5">5.00</option>
+      </select>
+    </label>
+    <button id="runBtn" class="btn primary run" title="Start / pause auto-refresh (Space)">RUN</button>
+    <button id="refreshBtn" class="btn icon" title="Refresh now (R)" aria-label="Refresh">
+      <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" /></svg>
+    </button>
+    <button id="settingsBtn" class="btn icon" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+    </button>
+    <div class="updated"><span id="sessionPill" class="pill">—</span> UPDATED <b id="updatedAt">--:--:--</b> ET</div>
+  </section>
+
+  <p class="rule"><span class="i">i</span>
+    RANKING RULE — Ranks apply only to qualified US-listed common stocks. Sort: 1-minute volume acceleration (high to low), then tighter spread %.
+    <span class="keys">Keys: ↑/↓ select · V verify catalyst · H halal · B buy ticket · R refresh · Space run/pause</span>
+  </p>
+
+  <div id="errorBar" class="error-bar" hidden></div>
+
+  <main class="layout">
+    <section class="card table-card">
+      <div class="table-wrap">
+        <table id="scanTable">
+          <thead>
+            <tr class="group">
+              <th colspan="4"></th>
+              <th colspan="3" class="grp">LAST COMPLETED 1-MIN BAR</th>
+              <th colspan="8"></th>
+            </tr>
+            <tr>
+              <th>RANK</th><th class="l">SYMBOL</th><th>PRICE</th><th>CHANGE %</th>
+              <th class="g">1M PRICE<br>CHANGE %</th><th class="g">1M<br>VOLUME</th><th class="g">1M VOL<br>ACCEL</th>
+              <th>PM VOL</th><th>PM RVOL</th><th>SPREAD %</th><th>DISTANCE<br>FROM PM<br>VWAP %</th>
+              <th>PM HIGH<br>(BREAKOUT)</th><th>HALAL</th><th>SETUP</th><th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="legend">1M = last completed 1-minute bar · 1M VOL ACCEL = that bar's volume ÷ average of the prior 5 completed bars · PM RVOL only where same-time premarket history exists · N/A = unavailable.</p>
+    </section>
+
+    <aside class="card gate" id="gate">
+      <p class="muted pad">Select a symbol.</p>
+    </aside>
+
+    <section class="card broker" id="broker"></section>
+  </main>
+
+  <footer class="banner">
+    <span id="footLeft">—</span>
+    <b>READY TO REVIEW ≠ BUY SIGNAL</b>
+    <span class="foot-r">You decide. You are responsible for every order.</span>
+  </footer>
+
+  <dialog id="settingsDlg">
+    <form method="dialog" id="settingsForm">
+      <h2>Settings</h2>
+      <div class="grid2">
+        <label>Min change %<input name="minChangePct" type="number" step="0.5" /></label>
+        <label>Min price $<input name="minPrice" type="number" step="0.01" /></label>
+        <label>Max price $<input name="maxPrice" type="number" step="0.01" /></label>
+        <label>Max spread %<input name="maxSpreadPct" type="number" step="0.01" /></label>
+        <label>Min reward : risk<input name="minRR" type="number" step="0.1" /></label>
+        <label>Refresh every (sec)<input name="refreshSec" type="number" step="1" min="2" /></label>
+        <label>Max symbols scanned<input name="maxSymbols" type="number" step="1" /></label>
+        <label>Risk per trade $<input name="riskPerTrade" type="number" step="1" /></label>
+        <label>Max position value $<input name="maxPositionValue" type="number" step="10" /></label>
+        <label class="chk"><input name="alertSound" type="checkbox" /> Sound + notification when a symbol qualifies</label>
+      </div>
+      <menu>
+        <button value="cancel" class="btn">Cancel</button>
+        <button value="save" class="btn primary" id="saveSettings">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="orderDlg">
+    <form method="dialog">
+      <h2 id="orderTitle">Confirm order</h2>
+      <div id="orderBody"></div>
+      <menu>
+        <button value="cancel" class="btn">Cancel (Esc)</button>
+        <button value="confirm" class="btn buy" id="confirmOrder">Send order</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
