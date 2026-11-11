@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   riskPerTrade: 50, // $ risked between entry and stop
   maxPositionValue: 2000, // $ cap per position
   alertSound: true,
+  autoExits: false, // auto stop/target sells for extended-hours entries
 });
 
 const NUM_LIMITS = {
@@ -83,8 +84,8 @@ export class Store {
       } else if (k === 'market') {
         if (!MARKETS.has(v)) throw new HttpError(400, 'Invalid market');
         next.market = v;
-      } else if (k === 'alertSound') {
-        next.alertSound = !!v;
+      } else if (k === 'alertSound' || k === 'autoExits') {
+        next[k] = !!v;
       }
     }
     this.state.settings = next;

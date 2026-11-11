@@ -9,6 +9,8 @@ import { DemoProvider } from './src/providers/demo.js';
 import { PolygonProvider } from './src/providers/polygon.js';
 import { DemoBroker } from './src/brokers/demo.js';
 import { AlpacaBroker } from './src/brokers/alpaca.js';
+import { ExitManager } from './src/exits.js';
+import { sessionOf } from './src/time.js';
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1']);
 if (!LOOPBACK.has(config.host) && !config.password) {
@@ -28,6 +30,9 @@ if (provider.isDemo && broker.live) {
   console.error('Refusing to start: live trading with DEMO market data is not allowed.');
   process.exit(1);
 }
+
+const exits = new ExitManager({ store, provider, broker, sessionOf });
+exits.start();
 
 // ---------- scan cache ----------
 let raw = null;
@@ -109,7 +114,7 @@ const routes = {
     };
     const [positions, orders] = await Promise.all([broker.getPositions(priceOf), broker.getOrders()]);
     const account = await broker.account();
-    return { name: broker.name, live: broker.live, account, positions, orders };
+    return { name: broker.name, live: broker.live, account, positions, orders, exits: exits.list(), autoExits: store.getSettings().autoExits };
   },
 
   'POST /api/order/preview': async (_req, _url, body) => orderTicket(normSymbol(body.symbol)),
@@ -134,6 +139,7 @@ const routes = {
       ask: t.ask,
       clientId: `ms-${sym}-${crypto.randomUUID().slice(0, 8)}`,
     });
+    if (t.extended) exits.track({ symbol: sym, stop: t.stop, target: t.target });
     console.log(`[ORDER] ${broker.name}${broker.live ? ' LIVE' : ''} BUY ${t.qty} ${sym} @ ${t.limit}`);
     return { order, ticket: t };
   },
@@ -145,6 +151,11 @@ const routes = {
     const extended = r.session !== 'regular';
     const limit = body.limit > 0 ? Number(body.limit) : (row?.bid ?? row?.price ?? null);
     return broker.closePosition(sym, limit, extended);
+  },
+
+  'POST /api/exit/remove': async (_req, _url, body) => {
+    exits.remove(normSymbol(body.symbol));
+    return { ok: true };
   },
 
   'POST /api/cancel': async (_req, _url, body) => broker.cancelOrder(String(body.id || '')),
@@ -176,7 +187,9 @@ async function orderTicket(sym, fresh = false) {
     broker: broker.name,
     live: broker.live,
     note: extended
-      ? 'Extended hours: only a LIMIT DAY entry is sent. Stop and target are NOT placed automatically — manage them yourself.'
+      ? store.getSettings().autoExits
+        ? 'Extended hours: a LIMIT DAY entry is sent. Brokers reject brackets now, so this app will WATCH stop/target and send the sell itself — keep this app running.'
+        : 'Extended hours: only a LIMIT DAY entry is sent. Stop and target are NOT placed (Auto exits is OFF in ⚙️) — manage them yourself.'
       : 'Regular hours: bracket order (limit entry + take-profit + stop-loss).',
   };
 }

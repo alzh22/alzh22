@@ -52,6 +52,12 @@ export class PolygonProvider {
     });
   }
 
+  async getQuote(sym) {
+    const j = await this.get(`/v2/snapshot/locale/us/markets/stocks/tickers/${encodeURIComponent(sym)}`);
+    const t = j.ticker || {};
+    return { price: t.lastTrade?.p || t.min?.c || null, bid: t.lastQuote?.p || null, ask: t.lastQuote?.P || null };
+  }
+
   async getDetails(sym) {
     const cached = this.store.getTicker(sym);
     if (cached) return cached;

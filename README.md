@@ -76,8 +76,14 @@ npm start
 - حجم الصفقة = أقل قيمة بين (المخاطرة لكل صفقة ÷ (الدخول − الوقف)) و(أقصى قيمة للمركز ÷ الدخول). تضبطهما من ⚙️.
 - عند الإرسال يعيد الخادم المسح **ببيانات جديدة** ويرفض الأمر إذا لم تعد الشروط متحققة، أو إذا تغيّرت الكمية
   أو السعر عن التذكرة التي وافقت عليها، أو إذا أُرسل أمر على نفس السهم خلال آخر 15 ثانية.
-- **قبل الافتتاح:** Alpaca تقبل فقط أوامر *Limit + Day + Extended hours*. لذلك يُرسل أمر الدخول فقط،
-  **ولا يُوضع وقف الخسارة والهدف تلقائياً**، فعليك إدارتهما بنفسك (زر *Sell all* يبيع بأمر Limit عند سعر العرض Bid).
+- **قبل الافتتاح:** Alpaca تقبل فقط أوامر *Limit + Day + Extended hours*، فلا يمكن إرسال وقف وهدف مع أمر الدخول.
+  الحل هو **مراقب الخروج التلقائي (Auto exits)**، وتفعّله من ⚙️ (معطّل افتراضياً):
+  - يراقب كل صفقة دُخلت قبل الافتتاح كل ثانيتين.
+  - إذا وصل السعر إلى **الوقف** يرسل أمر بيع Limit أقل من سعر العرض Bid بـ 0.5% ليُنفَّذ بسرعة.
+  - إذا وصل السعر إلى **الهدف** يرسل أمر بيع Limit عند سعر العرض Bid.
+  - لا يعمل إلا إذا نُفّذ أمر الدخول فعلاً، ويرسل أمر البيع مرة واحدة فقط.
+  - ⚠️ **يجب أن يبقى التطبيق شغّالاً.** إذا أُغلق الجهاز أو التطبيق لا توجد حماية، والفجوات السعرية قد تتجاوز الوقف.
+  - بدون تفعيله تدير الخروج بنفسك (زر *Sell all*).
 - **أثناء الجلسة العادية:** يُرسل أمر Bracket (دخول + هدف + وقف).
 
 ## السرعة
@@ -114,6 +120,7 @@ server.js              HTTP server, API, order safety checks
 src/metrics.js         1-min bar / PM metrics (pure)
 src/gate.js            7-check entry gate, ranking, universe filters (pure)
 src/scanner.js         data collection + evaluation
+src/exits.js           auto stop/target exits for extended-hours entries
 src/providers/         demo.js (simulated), polygon.js (real data)
 src/brokers/           demo.js (simulated fills), alpaca.js (paper / live)
 public/                UI (no build step)

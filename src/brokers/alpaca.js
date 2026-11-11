@@ -45,6 +45,16 @@ export class AlpacaBroker {
     }));
   }
 
+  async getPosition(symbol) {
+    try {
+      const p = await this.req('GET', `/v2/positions/${encodeURIComponent(symbol)}`);
+      return { symbol, qty: Number(p.qty) };
+    } catch (e) {
+      if (/Alpaca 404/.test(e.message)) return null;
+      throw e;
+    }
+  }
+
   async getOrders() {
     const os = await this.req('GET', '/v2/orders?status=all&limit=20&direction=desc&nested=true');
     return os.map((o) => ({

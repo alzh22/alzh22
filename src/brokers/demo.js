@@ -22,6 +22,11 @@ export class DemoBroker {
     });
   }
 
+  async getPosition(symbol) {
+    const p = this.positions.get(symbol);
+    return p ? { symbol, qty: p.qty } : null;
+  }
+
   async getOrders() {
     return this.orders.slice(-20).reverse();
   }
@@ -57,7 +62,7 @@ export class DemoBroker {
     return order;
   }
 
-  async closePosition(symbol, price) {
+  async closePosition(symbol, price /* , extended */) {
     const pos = this.positions.get(symbol);
     if (!pos) throw new Error('No position');
     const px = price ?? pos.lastPrice;

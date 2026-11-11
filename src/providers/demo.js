@@ -106,6 +106,11 @@ export class DemoProvider {
     });
   }
 
+  async getQuote(sym) {
+    const c = (await this.getCandidates(this.now())).find((x) => x.symbol === sym);
+    return c ? { price: c.price, bid: c.bid, ask: c.ask } : null;
+  }
+
   async getDetails(sym) {
     const u = UNIVERSE.find((x) => x.s === sym);
     return u ? { name: u.name, type: u.type, exchange: u.ex } : { name: '', type: null, exchange: null };

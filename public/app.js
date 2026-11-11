@@ -394,7 +394,11 @@ async function loadBroker() {
         <div><div class="table-wrap"><table><thead><tr><th class="l">ORDER</th><th>SIDE</th><th>QTY</th><th>TYPE</th><th>LIMIT</th><th>STATUS</th><th></th></tr></thead><tbody>
           ${b.orders.length ? b.orders.slice(0, 8).map((o) => `<tr><td class="l">${esc(o.symbol)}</td><td class="${o.side === 'buy' ? 'up' : 'down'}">${esc(o.side)}</td><td>${o.qty}</td><td>${esc(o.type)}</td><td>${fPx(o.limit)}</td><td>${esc(o.status)}</td><td>${['new', 'accepted', 'pending_new', 'partially_filled', 'held'].includes(o.status) ? `<button class="btn sm" data-cancel="${esc(o.id)}">Cancel</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="7" class="muted">No orders today</td></tr>'}
         </tbody></table></div></div>
-      </div>`;
+      </div>
+      <h4 style="margin-top:14px">AUTO EXITS · ${b.autoExits ? '<span class="up">ON</span>' : '<span class="down">OFF</span> (enable in ⚙️)'}</h4>
+      <div class="table-wrap"><table><thead><tr><th class="l">SYMBOL</th><th>STOP</th><th>TARGET</th><th>LAST</th><th>STATUS</th><th></th></tr></thead><tbody>
+        ${b.exits.length ? b.exits.map((x) => `<tr><td class="l"><b>${esc(x.symbol)}</b></td><td class="down">${fPx(x.stop)}</td><td class="up">${fPx(x.target)}</td><td>${fPx(x.last)}</td><td>${esc(x.status)}${x.error ? ` <span class="down" title="${esc(x.error)}">⚠</span>` : ''}</td><td><button class="btn sm" data-unexit="${esc(x.symbol)}">Remove</button></td></tr>`).join('') : '<tr><td colspan="6" class="muted">No premarket entries being watched</td></tr>'}
+      </tbody></table></div>`;
   } catch (e) {
     el.innerHTML = `<h4>BROKER</h4><p class="muted">Unavailable: ${esc(e.message)}</p>`;
   }
@@ -403,7 +407,12 @@ async function loadBroker() {
 $('#broker').addEventListener('click', async (e) => {
   const close = e.target.closest('[data-close]');
   const cancel = e.target.closest('[data-cancel]');
+  const unexit = e.target.closest('[data-unexit]');
   try {
+    if (unexit) {
+      await api('/api/exit/remove', { symbol: unexit.dataset.unexit });
+      return loadBroker();
+    }
     if (close) {
       const sym = close.dataset.close;
       if (!confirm(`Sell entire ${sym} position? Outside regular hours a LIMIT order at the current bid is sent.`)) return;
